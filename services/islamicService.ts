@@ -2,7 +2,17 @@
 import { DailyInspiration } from '../types';
 import { GoogleGenAI } from "@google/genai";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+/**
+ * Lazy-initializes the AI client. 
+ * This prevents crashes if the environment variable is missing during module load.
+ */
+const getAiClient = () => {
+  const apiKey = typeof process !== 'undefined' && process.env ? process.env.API_KEY : undefined;
+  if (!apiKey) {
+    throw new Error("API_KEY is missing. Please set it in your environment variables.");
+  }
+  return new GoogleGenAI({ apiKey });
+};
 
 /**
  * Fallback local calculation using Intl API (Umm al-Qura)
@@ -18,7 +28,6 @@ const calculateHijriFallback = (date: Date): string => {
 
 /**
  * Fetches the accurate Hijri date for a specific Gregorian date.
- * Implements aggressive caching to stay within API quotas and prevent 429 errors.
  */
 export const fetchHijriDateOnline = async (date: Date): Promise<string> => {
   const dateKey = date.toISOString().split('T')[0];
@@ -35,6 +44,7 @@ export const fetchHijriDateOnline = async (date: Date): Promise<string> => {
   Only return the date string itself.`;
 
   try {
+    const ai = getAiClient();
     const response = await ai.models.generateContent({
       model: 'gemini-3-pro-preview',
       contents: prompt,
@@ -48,7 +58,7 @@ export const fetchHijriDateOnline = async (date: Date): Promise<string> => {
       localStorage.setItem(cacheKey, text);
       return text;
     }
-    throw new Error("Invalid Hijri date format");
+    throw new Error("Invalid Hijri date format returned from API");
   } catch (error: any) {
     console.warn("Hijri API fetch failed, falling back to local calculation:", error.message);
     const fallback = calculateHijriFallback(date);
@@ -71,8 +81,7 @@ const fallbackInspiration: DailyInspiration = {
 };
 
 /**
- * Fetches daily spiritual inspiration. Uses local cache to ensure it only runs once per day.
- * Prompt refined to ensure variety and uniqueness for each day.
+ * Fetches daily spiritual inspiration.
  */
 export const fetchDailyInspiration = async (): Promise<DailyInspiration> => {
   const todayDate = new Date();
@@ -95,6 +104,7 @@ export const fetchDailyInspiration = async (): Promise<DailyInspiration> => {
   }`;
 
   try {
+    const ai = getAiClient();
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
       contents: prompt,
@@ -110,7 +120,7 @@ export const fetchDailyInspiration = async (): Promise<DailyInspiration> => {
     }));
     return result;
   } catch (error: any) {
-    console.error("Error fetching inspiration:", error);
+    console.error("Error fetching inspiration from Gemini:", error);
     return fallbackInspiration;
   }
 };

@@ -30,6 +30,9 @@ const App: React.FC = () => {
   
   const lastAlarmCheck = useRef<string>('');
 
+  // Check for API key existence to avoid silent crashes
+  const apiKey = typeof process !== 'undefined' && process.env ? process.env.API_KEY : undefined;
+
   const saveToStorage = (records: DailyEntry[], currentSelectedDate: Date) => {
     const dateStr = currentSelectedDate.toISOString().split('T')[0];
     const currentDateData = records.find(e => e.date.split('T')[0] === dateStr) || null;
@@ -155,6 +158,33 @@ const App: React.FC = () => {
       window.location.reload();
     }
   };
+
+  // If API Key is missing, show a friendly setup guide instead of a blank screen
+  if (!apiKey) {
+    return (
+      <div className="min-h-screen bg-stone-50 dark:bg-stone-950 flex items-center justify-center p-6">
+        <div className="max-w-md w-full bg-white dark:bg-stone-900 rounded-[2.5rem] shadow-2xl p-10 border border-emerald-50 dark:border-stone-800 text-center">
+          <div className="w-20 h-20 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center mx-auto mb-6 text-amber-600">
+             <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.268 17c-.77 1.333.192 3 1.732 3z" /></svg>
+          </div>
+          <h2 className="text-2xl font-bold text-emerald-900 dark:text-emerald-400 mb-4 tracking-tight">Configuration Required</h2>
+          <p className="text-stone-500 dark:text-stone-400 text-sm mb-8 leading-relaxed">
+            Nur Daily requires a Google Gemini API Key to provide Islamic dates and daily inspirations.
+          </p>
+          <div className="bg-stone-50 dark:bg-stone-800 rounded-2xl p-4 text-left mb-8 border border-stone-100 dark:border-stone-700">
+             <div className="text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-widest mb-2">Instructions:</div>
+             <ol className="text-xs text-stone-600 dark:text-stone-300 space-y-2 list-decimal ml-4">
+                <li>Go to your Netlify/Vercel project settings.</li>
+                <li>Add an environment variable named <code className="font-mono bg-stone-200 dark:bg-stone-700 px-1 rounded">API_KEY</code>.</li>
+                <li>Paste your Gemini API key as the value.</li>
+                <li>Redeploy your application.</li>
+             </ol>
+          </div>
+          <p className="text-[10px] text-stone-400">If you have already added the key, try clearing your browser cache and refreshing.</p>
+        </div>
+      </div>
+    );
+  }
 
   const renderContent = () => {
     switch (currentView) {
