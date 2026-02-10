@@ -114,14 +114,14 @@ const TasbeehCounter: React.FC = () => {
             
             {/* SVG Progress Ring */}
             <svg className="absolute inset-0 w-full h-full -rotate-90">
-              <circle cx="140" cy="140" r="125" className="stroke-stone-100 dark:stroke-stone-800" strokeWidth="12" fill="none" />
+              <circle cx="160" cy="160" r="145" className="stroke-stone-100 dark:stroke-stone-800" strokeWidth="12" fill="none" />
               <circle 
-                cx="140" cy="140" r="125" 
+                cx="160" cy="160" r="145" 
                 className="stroke-emerald-600 transition-all duration-300 ease-out" 
                 strokeWidth="12" 
                 fill="none" 
-                strokeDasharray={2 * Math.PI * 125}
-                strokeDashoffset={2 * Math.PI * 125 * (1 - Math.min(progress, 100) / 100)}
+                strokeDasharray={2 * Math.PI * 145}
+                strokeDashoffset={2 * Math.PI * 145 * (1 - Math.min(progress, 100) / 100)}
                 strokeLinecap="round"
               />
             </svg>

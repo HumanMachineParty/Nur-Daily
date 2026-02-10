@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { View } from '../types';
 
@@ -28,14 +27,14 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, setView, isOpen, setIsOp
       )}
 
       <aside className={`
-        fixed inset-y-0 left-0 z-50 w-72 bg-emerald-900 dark:bg-stone-900 text-white transform transition-transform duration-300 ease-in-out
+        fixed inset-y-0 left-0 z-50 w-72 sidebar-container transform transition-transform duration-300 ease-in-out
         ${isOpen ? 'translate-x-0' : '-translate-x-full'}
         lg:translate-x-0 lg:static lg:inset-0
-        border-r border-emerald-800 dark:border-stone-800
+        border-r border-white/10
       `}>
         <div className="p-6 flex flex-col h-full">
           <div className="flex items-center gap-3 mb-10">
-            <div className="w-10 h-10 bg-amber-400 rounded-lg flex items-center justify-center text-emerald-900 shadow-lg shadow-amber-400/20">
+            <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center text-white shadow-lg">
               <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z" />
               </svg>
@@ -54,8 +53,8 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, setView, isOpen, setIsOp
                 className={`
                   w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-all
                   ${currentView === item.id 
-                    ? 'bg-amber-400 text-emerald-950 shadow-lg shadow-amber-400/20' 
-                    : 'text-emerald-100 dark:text-stone-400 hover:bg-emerald-800 dark:hover:bg-stone-800 hover:text-white'}
+                    ? 'bg-white/20 text-white shadow-lg font-bold' 
+                    : 'opacity-60 hover:bg-white/10 hover:opacity-100'}
                 `}
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -66,8 +65,8 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, setView, isOpen, setIsOp
             ))}
           </nav>
 
-          <div className="mt-auto pt-6 border-t border-emerald-800 dark:border-stone-800">
-            <div className="text-xs text-emerald-300 dark:text-stone-500 mb-1">Authentic Spiritual Companion</div>
+          <div className="mt-auto pt-6 border-t border-white/10">
+            <div className="text-xs opacity-40 mb-1">Authentic Spiritual Companion</div>
             <div className="text-sm font-semibold opacity-80">Nur v1.1.0</div>
           </div>
         </div>

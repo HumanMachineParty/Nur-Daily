@@ -45,7 +45,7 @@ export interface DailyInspiration {
   };
 }
 
-export type ThemeMode = 'light' | 'dark' | 'system';
+export type ThemeMode = 'light' | 'dark' | 'royal';
 
 export interface PrayerAlarms {
   fajr: { enabled: boolean; time: string };
