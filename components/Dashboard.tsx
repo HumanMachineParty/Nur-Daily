@@ -98,9 +98,9 @@ const Dashboard: React.FC<DashboardProps> = ({ date, onDateChange, entries, onSa
         <div className="flex flex-col items-center md:items-end w-full md:w-auto">
           <div className="flex items-center gap-2 text-lg md:text-2xl font-amiri text-amber-600 text-center md:text-right">
             <svg className="w-4 h-4 md:w-5 md:h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z" /></svg>
-            <span className="truncate max-w-[200px] md:max-w-none font-bold">{hijriDateStr}</span>
+            <span className="truncate max-w-[200px] md:max-w-none font-bold tracking-tight">{hijriDateStr}</span>
           </div>
-          <span className="text-[9px] md:text-[10px] font-bold text-stone-400 uppercase tracking-widest leading-none">Umm al-Qura Date</span>
+          <span className="text-[9px] md:text-[10px] font-bold text-stone-400 uppercase tracking-widest leading-none">Hijri Date</span>
         </div>
       </div>
 
@@ -108,32 +108,41 @@ const Dashboard: React.FC<DashboardProps> = ({ date, onDateChange, entries, onSa
         <div className="lg:col-span-2 space-y-6">
           {inspiration && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Ayah Card */}
-              <div className="bg-emerald-700 p-6 md:p-8 rounded-[2.5rem] text-white shadow-xl relative overflow-hidden group border border-white/10 min-h-[260px] flex flex-col justify-center">
-                {/* Decorative Pattern / Calligraphy */}
-                <div className="absolute inset-0 flex items-center justify-center opacity-[0.1] pointer-events-none select-none font-amiri text-9xl tracking-tighter">
+              {/* Ayat Card - Optimized with prominent Arabic and theme-aware colors */}
+              <div className="bg-emerald-700 dark:bg-stone-900 p-6 md:p-8 rounded-[2.5rem] shadow-xl relative overflow-hidden border border-white/10 min-h-[300px] flex flex-col justify-center transition-all group">
+                <div className="absolute inset-0 flex items-center justify-center opacity-[0.12] dark:opacity-[0.1] pointer-events-none select-none font-amiri text-[12rem] tracking-tighter text-white">
                   الله
                 </div>
-                <div className="relative z-10 w-full">
-                  <div className="text-[10px] font-black uppercase tracking-widest mb-4 opacity-60">Ayah of the Day</div>
-                  <p className="font-amiri text-2xl text-right mb-4 leading-relaxed tracking-wide drop-shadow-md">{inspiration.ayah.arabic}</p>
-                  <p className="font-urdu text-xl md:text-2xl text-right text-amber-400 mb-2 font-black drop-shadow-lg leading-snug">{inspiration.ayah.urdu}</p>
-                  <p className="text-[10px] font-bold italic opacity-40 text-right mt-2">{inspiration.ayah.ref}</p>
+                <div className="relative z-10 w-full text-center md:text-right">
+                  <div className="text-[9px] font-black uppercase tracking-[0.2em] mb-4 text-white/60 dark:text-stone-500">Ayah of the Day</div>
+                  {/* Prominent Arabic text */}
+                  <p className="font-amiri text-3xl md:text-4xl text-white dark:text-amber-400 mb-6 leading-relaxed font-bold drop-shadow-md transition-colors">
+                    {inspiration.ayah.arabic}
+                  </p>
+                  {/* Updated Translation Color: Vibrant Amber/Gold for contrast */}
+                  <p className="font-urdu text-2xl md:text-3xl text-amber-100 dark:text-amber-200 mb-2 font-bold leading-relaxed drop-shadow-sm">
+                    {inspiration.ayah.urdu}
+                  </p>
+                  <p className="text-[10px] font-bold italic opacity-50 text-white dark:text-stone-500 mt-4">{inspiration.ayah.ref}</p>
                 </div>
               </div>
 
-              {/* Hadith Card */}
-              <div className="bg-white dark:bg-stone-900 p-6 md:p-8 rounded-[2.5rem] border border-gray-100 dark:border-stone-800 shadow-md relative overflow-hidden group min-h-[260px] flex flex-col justify-center">
-                {/* Decorative Calligraphy Background */}
-                <div className="absolute inset-0 flex items-center justify-center opacity-[0.1] dark:opacity-[0.08] pointer-events-none select-none font-amiri text-9xl tracking-tighter">
+              {/* Hadith Card - Optimized with prominent Arabic and theme-aware colors */}
+              <div className="bg-white dark:bg-stone-800 p-6 md:p-8 rounded-[2.5rem] border border-gray-100 dark:border-stone-700 shadow-lg relative overflow-hidden min-h-[300px] flex flex-col justify-center transition-all group">
+                <div className="absolute inset-0 flex items-center justify-center opacity-[0.12] dark:opacity-[0.1] pointer-events-none select-none font-amiri text-[12rem] tracking-tighter text-emerald-900 dark:text-white">
                   محمد
                 </div>
-                <div className="relative z-10 w-full">
-                  <div className="text-[10px] font-black uppercase tracking-widest mb-4 text-stone-400">Daily Hadith</div>
-                  <p className="font-amiri text-xl md:text-2xl text-right mb-4 text-emerald-900 dark:text-emerald-400 leading-relaxed font-bold">{inspiration.hadith.arabic}</p>
-                 
-                  <p className="font-urdu text-xl md:text-2xl text-emerald-800 dark:text-amber-500 text-right font-black drop-shadow-sm leading-snug">{inspiration.hadith.urdu}</p>
-                  <p className="text-[10px] font-bold italic opacity-40 mt-3">{inspiration.hadith.ref}</p>
+                <div className="relative z-10 w-full text-center md:text-right">
+                  <div className="text-[9px] font-black uppercase tracking-[0.2em] mb-4 text-stone-400">Daily Hadith</div>
+                  {/* Prominent Arabic text */}
+                  <p className="font-amiri text-2xl md:text-3xl text-emerald-900 dark:text-amber-400 mb-6 leading-relaxed font-bold transition-colors">
+                    {inspiration.hadith.arabic}
+                  </p>
+                  
+                  <p className="font-urdu text-xl md:text-2xl text-emerald-700 dark:text-emerald-400 font-bold leading-relaxed">
+                    {inspiration.hadith.urdu}
+                  </p>
+                  <p className="text-[10px] font-bold italic opacity-30 text-stone-500 mt-4">{inspiration.hadith.ref}</p>
                 </div>
               </div>
             </div>
@@ -195,7 +204,6 @@ const Dashboard: React.FC<DashboardProps> = ({ date, onDateChange, entries, onSa
               </div>
             </div>
 
-            {/* Custom Goals Section - Responsive Sizing */}
             <div className="pt-8 border-t border-gray-100 dark:border-stone-800">
               <h3 className="text-lg font-black flex items-center gap-2 mb-4">
                 <span className="w-2 h-2 bg-amber-400 rounded-full"></span>
