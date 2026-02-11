@@ -37,11 +37,7 @@ export const getHijriDateFormatted = (date: Date): string => {
       result = date.toLocaleDateString("en-SA-u-ca-islamic-umalqura", options);
     }
     
-    if (isGregorianResult(result)) {
-       return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) + " (Hijri Syncing)";
-    }
-
-    return result ;
+      return result ;
   } catch (e) {
     return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) + " (Date Error)";
   }
