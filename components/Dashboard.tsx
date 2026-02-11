@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
-import { DailyEntry, DailyInspiration, CustomTask } from '../types';
+import { DailyEntry, DailyInspiration } from '../types';
 import { fetchHijriDateOnline, fetchDailyInspiration, getCachedInspiration } from '../services/islamicService';
 
 interface DashboardProps {
@@ -12,42 +13,25 @@ interface DashboardProps {
 const Dashboard: React.FC<DashboardProps> = ({ date, onDateChange, entries, onSave }) => {
   const [inspiration, setInspiration] = useState<DailyInspiration | null>(null);
   const [currentEntry, setCurrentEntry] = useState<DailyEntry | null>(null);
-  const [currentTime, setCurrentTime] = useState(new Date());
-  const [hijriDateStr, setHijriDateStr] = useState<string>("...");
+  const [hijriDateStr, setHijriDateStr] = useState<string>("Loading...");
   const [newTaskText, setNewTaskText] = useState("");
 
   const updateHijriDate = useCallback(async (targetDate: Date) => {
+    // Attempt to get the most accurate date (local Intl Umalqura + Gemini formatting)
     const result = await fetchHijriDateOnline(targetDate);
     setHijriDateStr(result);
   }, []);
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      const now = new Date();
-      setCurrentTime(now);
-      if (now.getHours() === 0 && now.getMinutes() === 0 && now.getSeconds() === 0) {
-        onDateChange(new Date());
-        fetchDailyInspiration().then(setInspiration);
-        updateHijriDate(new Date());
-      }
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [onDateChange, updateHijriDate]);
-
-  useEffect(() => {
     updateHijriDate(date);
-  }, [date, updateHijriDate]);
-
-  useEffect(() => {
     const cached = getCachedInspiration();
     if (cached) setInspiration(cached);
     else fetchDailyInspiration().then(setInspiration);
-  }, []);
+  }, [date, updateHijriDate]);
 
   useEffect(() => {
     const dateStr = date.toISOString().split('T')[0];
     const existing = entries.find(e => e.date.split('T')[0] === dateStr);
-    
     if (existing) {
       setCurrentEntry(existing);
     } else {
@@ -56,11 +40,7 @@ const Dashboard: React.FC<DashboardProps> = ({ date, onDateChange, entries, onSa
         date: date.toISOString(),
         hijriDate: hijriDateStr,
         prayers: { fajr: false, zuhr: false, asar: false, maghrib: false, esha: false },
-        quran: null,
-        workout: null,
-        skill: { done: null, notes: '' },
-        customTasks: [],
-        diary: ''
+        quran: null, workout: null, skill: { done: null, notes: '' }, customTasks: [], diary: ''
       });
     }
   }, [date, entries, hijriDateStr]);
@@ -69,10 +49,6 @@ const Dashboard: React.FC<DashboardProps> = ({ date, onDateChange, entries, onSa
 
   const updatePrayer = (key: keyof DailyEntry['prayers']) => {
     onSave({ ...currentEntry, prayers: { ...currentEntry.prayers, [key]: !currentEntry.prayers[key] } });
-  };
-
-  const handleSimpleToggle = (field: 'quran' | 'workout', value: 'Yes' | 'No') => {
-    onSave({ ...currentEntry, [field]: value });
   };
 
   const addCustomTask = () => {
@@ -89,33 +65,43 @@ const Dashboard: React.FC<DashboardProps> = ({ date, onDateChange, entries, onSa
     onSave({ ...currentEntry, customTasks: updatedTasks });
   };
 
+  const removeCustomTask = (id: string) => {
+    const updatedTasks = (currentEntry.customTasks || []).filter(task => task.id !== id);
+    onSave({ ...currentEntry, customTasks: updatedTasks });
+  };
+
+  const isToday = new Date().toISOString().split('T')[0] === date.toISOString().split('T')[0];
+
   return (
     <div className="max-w-4xl mx-auto pb-20">
-      {/* Date Header Card */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8 bg-white p-6 rounded-3xl shadow-sm border border-gray-200">
-        <div className="flex flex-col gap-1">
-          <div className="flex items-center gap-3">
+      {/* Date Header */}
+      <div className="bg-white dark:bg-stone-900 p-4 md:p-6 rounded-[2rem] md:rounded-[2.5rem] shadow-sm border border-gray-200 dark:border-stone-800 mb-6 flex flex-col md:flex-row items-center justify-between gap-4 md:gap-6">
+        <div className="flex flex-col gap-1 items-center md:items-start w-full md:w-auto">
+          <div className="flex items-center gap-2 flex-wrap justify-center md:justify-start">
             <input 
               type="date" 
               value={date.toISOString().split('T')[0]} 
-              onChange={(e) => onDateChange(new Date(e.target.value))}
-              className="text-2xl font-extrabold bg-transparent border-none focus:ring-0 cursor-pointer p-0 appearance-none"
+              onChange={(e) => onDateChange(new Date(e.target.value))} 
+              className="text-lg md:text-2xl font-black bg-transparent border-none p-0 focus:ring-0 cursor-pointer text-emerald-950 dark:text-emerald-400 w-auto" 
             />
-            <button onClick={() => onDateChange(new Date())} className="p-2 bg-emerald-600 text-white rounded-xl shadow-lg hover:scale-105 active:scale-95">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
-            </button>
+            {!isToday && (
+              <button 
+                onClick={() => onDateChange(new Date())}
+                className="px-3 py-1 bg-emerald-600 text-white text-[9px] font-black uppercase rounded-full shadow-lg hover:scale-105 transition-all"
+              >
+                Today
+              </button>
+            )}
           </div>
-          <div className="text-xs uppercase font-bold tracking-widest mt-1 opacity-50">Journal Navigation</div>
+          <span className="text-[9px] md:text-[10px] font-bold text-stone-400 uppercase tracking-widest">Selected Timeline</span>
         </div>
-
-        <div className="flex items-center gap-6">
-          <div className="text-right">
-            <div className="flex items-center gap-2">
-              <svg className="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
-              <span className="text-xl font-amiri tracking-wide">{hijriDateStr}</span>
-            </div>
-            <div className="text-[10px] uppercase tracking-[0.2em] font-bold mt-1 opacity-50">Hijri Calendar</div>
+        
+        <div className="flex flex-col items-center md:items-end w-full md:w-auto">
+          <div className="flex items-center gap-2 text-lg md:text-xl font-amiri text-amber-600 text-center md:text-right">
+            <svg className="w-4 h-4 md:w-5 md:h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z" /></svg>
+            <span className="font-black leading-none">{hijriDateStr}</span>
           </div>
+          <span className="text-[9px] md:text-[10px] font-bold text-stone-400 uppercase tracking-widest">Islamic Date</span>
         </div>
       </div>
 
@@ -123,119 +109,128 @@ const Dashboard: React.FC<DashboardProps> = ({ date, onDateChange, entries, onSa
         <div className="lg:col-span-2 space-y-6">
           {inspiration && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="bg-emerald-900 p-6 rounded-3xl text-white shadow-xl relative overflow-hidden group">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl"></div>
-                <div className="text-xs font-bold uppercase tracking-widest mb-4 opacity-70">Ayah of the Day</div>
-                <p className="font-amiri text-2xl text-right mb-4 leading-relaxed">{inspiration.ayah.arabic}</p>
-                <p className="font-urdu text-lg text-right opacity-90 mb-2">{inspiration.ayah.urdu}</p>
-                <p className="text-[10px] font-bold italic opacity-60 text-right">{inspiration.ayah.ref}</p>
+              {/* Ayah Card */}
+              <div className="bg-emerald-900 p-6 md:p-8 rounded-[2.5rem] text-white shadow-xl relative overflow-hidden group border border-white/10 min-h-[240px]">
+                <div className="absolute inset-0 flex items-center justify-center opacity-[0.07] pointer-events-none select-none font-amiri text-9xl tracking-tighter">
+                  الله
+                </div>
+                <div className="relative z-10">
+                  <div className="text-[10px] font-black uppercase tracking-widest mb-4 opacity-60">Ayah of the Day</div>
+                  <p className="font-amiri text-2xl text-right mb-4 leading-relaxed tracking-wide drop-shadow-sm">{inspiration.ayah.arabic}</p>
+                  <p className="font-urdu text-xl text-right text-amber-400 mb-2 font-black drop-shadow-md leading-[2.6]">{inspiration.ayah.urdu}</p>
+                  <p className="text-[10px] font-bold italic opacity-40 text-right">{inspiration.ayah.ref}</p>
+                </div>
               </div>
 
-              <div className="bg-white p-6 rounded-3xl shadow-xl border border-gray-200 relative overflow-hidden group">
-                <div className="text-xs font-bold uppercase tracking-widest mb-4 opacity-50">Daily Hadith</div>
-                <p className="font-amiri text-xl mb-4 leading-relaxed text-emerald-900">{inspiration.hadith.text}</p>
-                <p className="font-urdu text-lg opacity-80 mb-2">{inspiration.hadith.urdu}</p>
-                <p className="text-[10px] font-bold italic opacity-50">{inspiration.hadith.ref}</p>
+              {/* Hadith Card */}
+              <div className="bg-white dark:bg-stone-900 p-6 md:p-8 rounded-[2.5rem] border border-gray-100 dark:border-stone-800 shadow-md relative overflow-hidden group min-h-[240px]">
+                <div className="absolute -bottom-8 -left-8 opacity-[0.05] dark:opacity-[0.1] pointer-events-none select-none transform rotate-45">
+                   <svg className="w-40 h-40" viewBox="0 0 100 100" fill="currentColor">
+                      <path d="M50 0 L100 50 L50 100 L0 50 Z M50 20 L80 50 L50 80 L20 50 Z" />
+                   </svg>
+                </div>
+                <div className="relative z-10">
+                  <div className="text-[10px] font-black uppercase tracking-widest mb-4 text-stone-400">Daily Hadith</div>
+                  <p className="font-amiri text-xl text-right mb-4 text-emerald-900 dark:text-emerald-400 leading-relaxed font-bold">{inspiration.hadith.arabic}</p>
+                  <div className="h-px bg-stone-100 dark:bg-stone-800 mb-4 opacity-50"></div>
+                  <p className="font-urdu text-xl text-emerald-700 dark:text-amber-500 text-right font-black drop-shadow-sm leading-[2.6]">{inspiration.hadith.urdu}</p>
+                  <p className="text-[10px] font-bold italic opacity-40 mt-2">{inspiration.hadith.ref}</p>
+                </div>
               </div>
             </div>
           )}
 
-          {/* Checklist Card */}
-          <div className="bg-white p-8 rounded-3xl shadow-lg border border-gray-200 space-y-8">
-            <div>
-              <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
-                <span className="w-2 h-2 bg-amber-400 rounded-full"></span>
-                Prayers Checklist
-              </h3>
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-                {(Object.keys(currentEntry.prayers) as Array<keyof DailyEntry['prayers']>).map((p) => (
-                  <button
-                    key={p}
-                    onClick={() => updatePrayer(p)}
-                    className={`px-4 py-4 rounded-2xl text-xs font-bold uppercase transition-all flex flex-col items-center gap-2 border-2 
-                      ${currentEntry.prayers[p] ? 'checklist-item-on' : 'checklist-item-off'}`}
-                  >
-                    <span className="tracking-tighter">{p}</span>
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center border transition-all 
-                      ${currentEntry.prayers[p] ? 'bg-white/20 border-white' : 'bg-transparent border-current opacity-40'}`}>
-                      {currentEntry.prayers[p] && <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
-                    </div>
-                  </button>
-                ))}
-              </div>
+          {/* Checklist */}
+          <div className="bg-white dark:bg-stone-900 p-6 md:p-8 rounded-[2.5rem] shadow-lg border border-gray-100 dark:border-stone-800 space-y-8">
+            <h3 className="text-lg font-black flex items-center gap-2">
+              <span className="w-2 h-2 bg-amber-400 rounded-full"></span>
+              Salah Tracking
+            </h3>
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+              {(Object.keys(currentEntry.prayers) as Array<keyof DailyEntry['prayers']>).map((p) => (
+                <button key={p} onClick={() => updatePrayer(p)} className={`px-2 py-4 rounded-3xl text-[9px] font-black uppercase transition-all flex flex-col items-center gap-2 border-2 ${currentEntry.prayers[p] ? 'bg-emerald-600 border-emerald-600 text-white shadow-lg' : 'bg-gray-100 dark:bg-stone-800 border-transparent text-stone-400'}`}>
+                  {p}
+                  <div className={`w-7 h-7 rounded-full flex items-center justify-center border-2 ${currentEntry.prayers[p] ? 'bg-white/20 border-white' : 'border-stone-300'}`}>
+                    {currentEntry.prayers[p] && <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
+                  </div>
+                </button>
+              ))}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="pt-8 border-t border-gray-100 dark:border-stone-800 grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 rounded-2xl bg-gray-100 border border-gray-200">
-                  <span className="font-bold uppercase text-[10px] tracking-widest opacity-60">Quran Status</span>
-                  <div className="flex gap-2">
-                    {['Yes', 'No'].map((v) => (
-                      <button 
-                        key={v} 
-                        onClick={() => handleSimpleToggle('quran', v as 'Yes' | 'No')} 
-                        className={`px-4 py-1.5 rounded-xl text-xs font-black transition-all border 
-                          ${currentEntry.quran === v ? 'bg-emerald-600 text-white border-emerald-600 shadow-md' : 'bg-white text-gray-500 border-gray-300'}`}
-                      >
-                        {v}
-                      </button>
+                <div className="flex items-center justify-between p-3 md:p-4 rounded-2xl bg-gray-100 dark:bg-stone-800">
+                  <span className="font-bold uppercase text-[9px] md:text-[10px] text-stone-500">Quran Status</span>
+                  <div className="flex gap-1">
+                    {['Yes', 'No'].map(v => (
+                      <button key={v} onClick={() => onSave({...currentEntry, quran: v as 'Yes'|'No'})} className={`px-3 py-1.5 rounded-xl text-[10px] font-black transition-all ${currentEntry.quran === v ? 'bg-emerald-600 text-white shadow-md' : 'bg-white dark:bg-stone-900 text-stone-400'}`}>{v}</button>
                     ))}
                   </div>
                 </div>
-                <div className="flex items-center justify-between p-4 rounded-2xl bg-gray-100 border border-gray-200">
-                  <span className="font-bold uppercase text-[10px] tracking-widest opacity-60">Daily Workout</span>
-                  <div className="flex gap-2">
-                    {['Yes', 'No'].map((v) => (
-                      <button 
-                        key={v} 
-                        onClick={() => handleSimpleToggle('workout', v as 'Yes' | 'No')} 
-                        className={`px-4 py-1.5 rounded-xl text-xs font-black transition-all border
-                          ${currentEntry.workout === v ? 'bg-emerald-600 text-white border-emerald-600 shadow-md' : 'bg-white text-gray-500 border-gray-300'}`}
-                      >
-                        {v}
-                      </button>
+                <div className="flex items-center justify-between p-3 md:p-4 rounded-2xl bg-gray-100 dark:bg-stone-800">
+                  <span className="font-bold uppercase text-[9px] md:text-[10px] text-stone-500">Workout</span>
+                  <div className="flex gap-1">
+                    {['Yes', 'No'].map(v => (
+                      <button key={v} onClick={() => onSave({...currentEntry, workout: v as 'Yes'|'No'})} className={`px-3 py-1.5 rounded-xl text-[10px] font-black transition-all ${currentEntry.workout === v ? 'bg-emerald-600 text-white shadow-md' : 'bg-white dark:bg-stone-900 text-stone-400'}`}>{v}</button>
+                    ))}
+                  </div>
+                </div>
+                <div className="flex items-center justify-between p-3 md:p-4 rounded-2xl bg-gray-100 dark:bg-stone-800">
+                  <span className="font-bold uppercase text-[9px] md:text-[10px] text-stone-500">Skill Learning</span>
+                  <div className="flex gap-1">
+                    {['Yes', 'No'].map(v => (
+                      <button key={v} onClick={() => onSave({...currentEntry, skill: { ...currentEntry.skill, done: v as 'Yes'|'No' }})} className={`px-3 py-1.5 rounded-xl text-[10px] font-black transition-all ${currentEntry.skill.done === v ? 'bg-emerald-600 text-white shadow-md' : 'bg-white dark:bg-stone-900 text-stone-400'}`}>{v}</button>
                     ))}
                   </div>
                 </div>
               </div>
-
-              <div className="p-4 rounded-2xl bg-gray-100 border border-gray-200 flex flex-col gap-3">
-                 <div className="text-[10px] font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2">
-                   <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
-                   Daily Learning
-                 </div>
-                <textarea
-                  placeholder="Record your achievements..."
-                  value={currentEntry.skill.notes}
-                  onChange={(e) => onSave({...currentEntry, skill: { ...currentEntry.skill, notes: e.target.value }})}
-                  className="w-full h-24 p-3 text-sm rounded-xl border bg-white focus:ring-emerald-500 transition-colors outline-none resize-none"
+              
+              <div className={`flex flex-col gap-2 transition-all duration-300 ${currentEntry.skill.done === 'Yes' ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none hidden'}`}>
+                <span className="font-bold uppercase text-[10px] text-stone-500 ml-1">Learning Notes</span>
+                <textarea 
+                  placeholder="Today's learnings..." 
+                  value={currentEntry.skill.notes} 
+                  onChange={(e) => onSave({...currentEntry, skill: { ...currentEntry.skill, notes: e.target.value }})} 
+                  className="w-full h-full min-h-[100px] p-4 text-sm rounded-2xl border bg-gray-50 dark:bg-stone-800 outline-none resize-none focus:ring-2 focus:ring-emerald-500" 
                 />
               </div>
             </div>
 
-            <div className="pt-8 border-t border-gray-200">
-              <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
+            {/* Custom Goals */}
+            <div className="pt-8 border-t border-gray-100 dark:border-stone-800">
+              <h3 className="text-lg font-black flex items-center gap-2 mb-4">
                 <span className="w-2 h-2 bg-amber-400 rounded-full"></span>
                 Other Goals
               </h3>
-              <div className="flex gap-2 mb-6">
+              <div className="flex gap-2 mb-4">
                 <input 
                   type="text" 
                   value={newTaskText}
                   onChange={(e) => setNewTaskText(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && addCustomTask()}
-                  placeholder="Anything else for today?"
-                  className="flex-1 px-4 py-3 rounded-xl border bg-gray-100 outline-none text-sm"
+                  placeholder="New goal..."
+                  className="flex-1 px-4 py-2.5 rounded-xl border bg-gray-50 dark:bg-stone-800 outline-none text-sm focus:ring-2 focus:ring-emerald-500"
                 />
-                <button onClick={addCustomTask} className="px-6 py-3 bg-emerald-600 text-white rounded-xl font-bold shadow-md hover:brightness-110 active:scale-95 transition-all text-sm">Add</button>
+                <button 
+                  onClick={addCustomTask}
+                  className="px-4 py-2.5 bg-emerald-600 text-white rounded-xl font-black shadow-md hover:scale-105 active:scale-95 transition-all text-xs"
+                >
+                  Add
+                </button>
               </div>
-              <div className="space-y-2">
+              <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1 no-scrollbar">
                 {(currentEntry.customTasks || []).map(task => (
-                  <div key={task.id} className="flex items-center gap-4 p-3 rounded-xl bg-gray-100 border border-gray-200 group hover:border-emerald-300">
-                    <button onClick={() => toggleCustomTask(task.id)} className={`w-6 h-6 rounded-full border transition-all ${task.done ? 'bg-emerald-600 border-emerald-600 shadow-sm' : 'bg-white border-gray-300'}`}>
-                      {task.done && <svg className="w-4 h-4 text-white mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
+                  <div key={task.id} className="flex items-center gap-3 p-3 rounded-xl bg-gray-100 dark:bg-stone-800 border border-transparent group">
+                    <button 
+                      onClick={() => toggleCustomTask(task.id)} 
+                      className={`w-5 h-5 rounded-full border-2 transition-all flex items-center justify-center flex-shrink-0 ${task.done ? 'bg-emerald-600 border-emerald-600' : 'bg-white dark:bg-stone-900 border-stone-300'}`}
+                    >
+                      {task.done && <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M5 13l4 4L19 7" /></svg>}
                     </button>
-                    <span className={`text-sm flex-1 font-medium ${task.done ? 'line-through opacity-40' : ''}`}>{task.text}</span>
+                    <span className={`text-xs flex-1 font-bold ${task.done ? 'line-through opacity-40' : 'text-emerald-950 dark:text-emerald-50'}`}>{task.text}</span>
+                    <button onClick={() => removeCustomTask(task.id)} className="opacity-0 group-hover:opacity-100 p-1 text-stone-300 hover:text-red-500">
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                    </button>
                   </div>
                 ))}
               </div>
@@ -243,25 +238,18 @@ const Dashboard: React.FC<DashboardProps> = ({ date, onDateChange, entries, onSa
           </div>
         </div>
 
-        {/* Diary Sidebar */}
-        <div className="space-y-6">
-          <div className="bg-emerald-900 p-8 rounded-3xl text-white shadow-xl h-full min-h-[400px] flex flex-col relative overflow-hidden group">
-            <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-white/5 rounded-full blur-3xl group-hover:scale-110 transition-transform"></div>
-            <h3 className="text-xl font-bold flex items-center gap-3 mb-6">
-              <svg className="w-6 h-6 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-              My Diary
-            </h3>
-            <textarea
-              placeholder="Reflect on your spiritual journey today..."
-              value={currentEntry.diary}
-              onChange={(e) => onSave({...currentEntry, diary: e.target.value})}
-              className="flex-1 w-full bg-black/20 border-none rounded-2xl p-5 text-emerald-50 placeholder-emerald-400/40 outline-none resize-none text-sm leading-relaxed"
-            />
-            <div className="mt-6 flex items-center justify-between opacity-50 text-[10px] font-black uppercase tracking-widest">
-              <span>Personal Reflection</span>
-              <span>Keep Growing</span>
-            </div>
-          </div>
+        <div className="bg-emerald-900 p-6 md:p-8 rounded-[2.5rem] text-white shadow-xl flex flex-col min-h-[350px] relative overflow-hidden group">
+          <div className="absolute top-0 right-0 w-full h-px bg-gradient-to-r from-transparent via-amber-400/30 to-transparent"></div>
+          <h3 className="text-xl font-bold flex items-center gap-3 mb-6 relative">
+            <svg className="w-6 h-6 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+            Diary Entry
+          </h3>
+          <textarea 
+            placeholder="Reflect on your spiritual journey today..." 
+            value={currentEntry.diary} 
+            onChange={(e) => onSave({...currentEntry, diary: e.target.value})} 
+            className="flex-1 w-full bg-black/20 border-none rounded-2xl p-4 text-emerald-50 placeholder-emerald-400/30 outline-none resize-none text-sm leading-relaxed focus:bg-black/30 transition-all" 
+          />
         </div>
       </div>
     </div>

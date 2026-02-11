@@ -39,7 +39,7 @@ export interface DailyInspiration {
     ref: string;
   };
   hadith: {
-    text: string;
+    arabic: string;
     urdu: string;
     ref: string;
   };
@@ -60,6 +60,8 @@ export interface AppSettings {
   notificationsEnabled: boolean;
   alarms: PrayerAlarms;
   autoPrayerTimes: boolean;
+  dailyReminderTime: string;
+  location?: { lat: number; lng: number };
 }
 
 export enum View {
