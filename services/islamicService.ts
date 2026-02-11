@@ -2,6 +2,10 @@
 import { DailyInspiration } from '../types';
 import { GoogleGenAI } from "@google/genai";
 
+const HADITH_API_KEY = "$2y$10$BEAo9I5SDRzvtr0SwIgqexdYCU7OvCbiVcvl2N4sfTg4voY4aWm";
+const QURAN_API_URL = "https://alquran-api.pages.dev/api/quran?lang=ur";
+const HADITH_API_URL = `https://hadithapi.com/api/hadiths/?apiKey=${HADITH_API_KEY}`;
+
 const getAiClient = () => {
   const apiKey = typeof process !== 'undefined' && process.env ? process.env.API_KEY : undefined;
   if (!apiKey) throw new Error("API_KEY missing");
@@ -9,82 +13,25 @@ const getAiClient = () => {
 };
 
 /**
- * Uses the browser's native Intl API which is the industry standard for 
- * the Umm al-Qura (Saudi) calendar. This is local, zero-cost, and highly accurate.
+ * Highly accurate local Hijri date formatter using the Umm al-Qura calendar.
  */
-const getSystemHijriDate = (date: Date): string => {
+export const getHijriDateFormatted = (date: Date): string => {
   try {
-    // 'en-u-ca-islamic-umalqura-nu-latn' provides English names, Umm al-Qura calendar, and Latin numbers.
-    const formatter = new Intl.DateTimeFormat('en-u-ca-islamic-umalqura-nu-latn', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-    });
-    const parts = formatter.formatToParts(date);
-    const day = parts.find(p => p.type === 'day')?.value;
-    const month = parts.find(p => p.type === 'month')?.value;
-    const year = parts.find(p => p.type === 'year')?.value;
-    
-    // Manual formatting to match the "17 Shaban, 1446 AH" style strictly
-    if (day && month && year) {
-      return `${day} ${month}, ${year} AH`;
-    }
-    return formatter.format(date) + " AH";
+    return date.toLocaleDateString(
+      "en-u-ca-islamic-umalqura",
+      {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      }
+    ) + " AH";
   } catch (e) {
-    console.error("System Hijri Error:", e);
-    return "";
+    return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) + " (Syncing...)";
   }
 };
 
-/**
- * Fetches the Hijri date. To prevent 429 errors, it prioritizes local calculation.
- * It only calls Gemini if the cache is empty and the system date needs "beautification".
- */
 export const fetchHijriDateOnline = async (date: Date): Promise<string> => {
-  const dateKey = date.toISOString().split('T')[0];
-  const cacheKey = `hijri_accurate_v6_${dateKey}`;
-  const cached = localStorage.getItem(cacheKey);
-  
-  // Return cached value if it looks like an Islamic date
-  const gregorianMonths = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'];
-  if (cached && !gregorianMonths.some(m => cached.toLowerCase().includes(m))) {
-    return cached;
-  }
-
-  // Baseline is the highly accurate system Umalqura date
-  const systemDate = getSystemHijriDate(date);
-  if (!systemDate) return "Islamic Date Unavailable";
-
-  // If we already have a system date, we only use AI to ensure naming conventions 
-  // match user expectations (e.g., spelling of months). 
-  // However, we wrap it in an aggressive try-catch to handle 429 (Quota) errors.
-  try {
-    const ai = getAiClient();
-    const prompt = `Convert this system Islamic date "${systemDate}" (derived from Gregorian ${date.toDateString()}) to a formal English format.
-    Return ONLY the date. Example: "17 Shaban, 1446 AH". 
-    Use traditional month names: Muharram, Safar, Rabi al-Awwal, Rabi al-Thani, Jumada al-Ula, Jumada al-Akhira, Rajab, Shaban, Ramadan, Shawwal, Dhu al-Qidah, Dhu al-Hijjah.`;
-
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: prompt,
-    });
-    
-    const text = response.text?.trim() || "";
-    if (text.length > 5 && !gregorianMonths.some(m => text.toLowerCase().includes(m))) {
-      localStorage.setItem(cacheKey, text);
-      return text;
-    }
-    
-    // If AI returns something weird, fallback to system
-    localStorage.setItem(cacheKey, systemDate);
-    return systemDate;
-  } catch (error: any) {
-    // If we hit 429 (Resource Exhausted), we gracefully fallback to the local system date.
-    // This ensures the UI never hangs on "Syncing...".
-    console.warn("Gemini Rate Limited or Error, falling back to System Hijri:", error.message);
-    localStorage.setItem(cacheKey, systemDate);
-    return systemDate;
-  }
+  return getHijriDateFormatted(date);
 };
 
 export const fetchPrayerTimesByLocation = async (lat: number, lng: number): Promise<any> => {
@@ -108,31 +55,70 @@ export const fetchDailyInspiration = async (): Promise<DailyInspiration> => {
   const todayStr = new Date().toDateString();
   const cached = getCachedInspiration();
   if (cached) return cached;
-  
-  const prompt = `Provide 1 authentic Quranic Ayah and 1 authentic Hadith. 
-  For both, include the original Arabic text and a beautiful Urdu translation.
-  JSON Format: 
-  {
-    "ayah": { "arabic": "...", "urdu": "...", "ref": "..." },
-    "hadith": { "arabic": "...", "urdu": "...", "ref": "..." }
-  }`;
 
+  let ayahInspiration = null;
+  let hadithInspiration = null;
+
+  // 1. Fetch Quranic Ayah
   try {
-    const ai = getAiClient();
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: prompt,
-      config: { responseMimeType: "application/json" }
-    });
-    const result = JSON.parse(response.text);
-    localStorage.setItem('daily_inspiration_cache', JSON.stringify({ date: todayStr, data: result }));
-    return result;
+    const quranRes = await fetch(QURAN_API_URL, { cache: 'no-store' });
+    if (!quranRes.ok) throw new Error("Quran API Status: " + quranRes.status);
+    const quranData = await quranRes.json();
+    
+    const surahs = Array.isArray(quranData) ? quranData : (quranData.data || []);
+    if (surahs.length > 0) {
+      const randomSurah = surahs[Math.floor(Math.random() * surahs.length)];
+      const ayahs = randomSurah.ayahs || [];
+      if (ayahs.length > 0) {
+        const randomAyah = ayahs[Math.floor(Math.random() * ayahs.length)];
+        ayahInspiration = {
+          arabic: randomAyah.text || "",
+          urdu: randomAyah.translation || "ترجمہ دستیاب نہیں",
+          ref: `Surah ${randomSurah.englishName || randomSurah.name} (${randomSurah.number}:${randomAyah.numberInSurah})`
+        };
+      }
+    }
   } catch (error) {
-    return {
-      ayah: { arabic: "وَإِذَا سَأَلَكَ عِبَادِي عَنِّي فَإِنِّي قَرِيبٌ", urdu: "اور جب میرے بندے آپ سے میرے بارے میں سوال کریں تو میں قریب ہوں۔", ref: "2:186" },
-      hadith: { arabic: "الدُّعَاءُ هُوَ الْعِبَادَةُ", urdu: "دعا ہی عبادت ہے۔", ref: "Tirmidhi" }
+    console.warn("Quran Fetch Failed, using fallback:", error);
+    ayahInspiration = { 
+      arabic: "إِنَّ مَعَ الْعُسْرِ يُسْرًا", 
+      urdu: "بیشک تنگی کے ساتھ آسانی ہے۔", 
+      ref: "Surah Ash-Sharh (94:6)" 
     };
   }
+
+  // 2. Fetch Hadith
+  try {
+    const randomPage = Math.floor(Math.random() * 5) + 1; // Limit pages to avoid out-of-bounds
+    const hadithRes = await fetch(`${HADITH_API_URL}&page=${randomPage}`, { cache: 'no-store' });
+    if (!hadithRes.ok) throw new Error("Hadith API Status: " + hadithRes.status);
+    const hadithData = await hadithRes.json();
+    
+    const hadithList = hadithData?.hadiths?.data || [];
+    if (hadithList.length > 0) {
+      const randomHadithItem = hadithList[Math.floor(Math.random() * hadithList.length)];
+      hadithInspiration = {
+        arabic: randomHadithItem?.hadithArabic || "حدیث دستیاب نہیں",
+        urdu: randomHadithItem?.hadithUrdu || "ترجمہ دستیاب نہیں",
+        ref: `${randomHadithItem?.bookName || "Hadith"} - ${randomHadithItem?.hadithNumber || ""}`
+      };
+    }
+  } catch (error) {
+    console.warn("Hadith Fetch Failed, using fallback:", error);
+    hadithInspiration = { 
+      arabic: "خَيْرُكُمْ مَنْ تَعَلَّمَ الْقُرْآنَ وَعَلَّمَهُ", 
+      urdu: "تم میں سے بہترین وہ ہے جو قرآن سیکھے اور سکھائے۔", 
+      ref: "Sahih Bukhari - 5027" 
+    };
+  }
+
+  const finalInspiration: DailyInspiration = {
+    ayah: ayahInspiration || { arabic: "", urdu: "", ref: "" },
+    hadith: hadithInspiration || { arabic: "", urdu: "", ref: "" }
+  };
+
+  localStorage.setItem('daily_inspiration_cache', JSON.stringify({ date: todayStr, data: finalInspiration }));
+  return finalInspiration;
 };
 
 export const getCachedInspiration = (): DailyInspiration | null => {

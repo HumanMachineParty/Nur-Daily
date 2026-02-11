@@ -13,11 +13,10 @@ interface DashboardProps {
 const Dashboard: React.FC<DashboardProps> = ({ date, onDateChange, entries, onSave }) => {
   const [inspiration, setInspiration] = useState<DailyInspiration | null>(null);
   const [currentEntry, setCurrentEntry] = useState<DailyEntry | null>(null);
-  const [hijriDateStr, setHijriDateStr] = useState<string>("Loading...");
+  const [hijriDateStr, setHijriDateStr] = useState<string>("");
   const [newTaskText, setNewTaskText] = useState("");
 
   const updateHijriDate = useCallback(async (targetDate: Date) => {
-    // Attempt to get the most accurate date (local Intl Umalqura + Gemini formatting)
     const result = await fetchHijriDateOnline(targetDate);
     setHijriDateStr(result);
   }, []);
@@ -74,8 +73,8 @@ const Dashboard: React.FC<DashboardProps> = ({ date, onDateChange, entries, onSa
 
   return (
     <div className="max-w-4xl mx-auto pb-20">
-      {/* Date Header */}
-      <div className="bg-white dark:bg-stone-900 p-4 md:p-6 rounded-[2rem] md:rounded-[2.5rem] shadow-sm border border-gray-200 dark:border-stone-800 mb-6 flex flex-col md:flex-row items-center justify-between gap-4 md:gap-6">
+      {/* Date Navigation Header */}
+      <div className="bg-white dark:bg-stone-900 p-4 md:p-6 rounded-[2rem] md:rounded-[2.5rem] shadow-sm border border-gray-200 dark:border-stone-800 mb-6 flex flex-col md:flex-row items-center justify-between gap-4 md:gap-6 overflow-hidden">
         <div className="flex flex-col gap-1 items-center md:items-start w-full md:w-auto">
           <div className="flex items-center gap-2 flex-wrap justify-center md:justify-start">
             <input 
@@ -97,11 +96,11 @@ const Dashboard: React.FC<DashboardProps> = ({ date, onDateChange, entries, onSa
         </div>
         
         <div className="flex flex-col items-center md:items-end w-full md:w-auto">
-          <div className="flex items-center gap-2 text-lg md:text-xl font-amiri text-amber-600 text-center md:text-right">
+          <div className="flex items-center gap-2 text-lg md:text-2xl font-amiri text-amber-600 text-center md:text-right">
             <svg className="w-4 h-4 md:w-5 md:h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z" /></svg>
-            <span className="font-black leading-none">{hijriDateStr}</span>
+            <span className="truncate max-w-[200px] md:max-w-none font-bold">{hijriDateStr}</span>
           </div>
-          <span className="text-[9px] md:text-[10px] font-bold text-stone-400 uppercase tracking-widest">Islamic Date</span>
+          <span className="text-[9px] md:text-[10px] font-bold text-stone-400 uppercase tracking-widest leading-none">Umm al-Qura Date</span>
         </div>
       </div>
 
@@ -110,31 +109,31 @@ const Dashboard: React.FC<DashboardProps> = ({ date, onDateChange, entries, onSa
           {inspiration && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Ayah Card */}
-              <div className="bg-emerald-900 p-6 md:p-8 rounded-[2.5rem] text-white shadow-xl relative overflow-hidden group border border-white/10 min-h-[240px]">
-                <div className="absolute inset-0 flex items-center justify-center opacity-[0.07] pointer-events-none select-none font-amiri text-9xl tracking-tighter">
+              <div className="bg-emerald-700 p-6 md:p-8 rounded-[2.5rem] text-white shadow-xl relative overflow-hidden group border border-white/10 min-h-[260px] flex flex-col justify-center">
+                {/* Decorative Pattern / Calligraphy */}
+                <div className="absolute inset-0 flex items-center justify-center opacity-[0.1] pointer-events-none select-none font-amiri text-9xl tracking-tighter">
                   الله
                 </div>
-                <div className="relative z-10">
+                <div className="relative z-10 w-full">
                   <div className="text-[10px] font-black uppercase tracking-widest mb-4 opacity-60">Ayah of the Day</div>
-                  <p className="font-amiri text-2xl text-right mb-4 leading-relaxed tracking-wide drop-shadow-sm">{inspiration.ayah.arabic}</p>
-                  <p className="font-urdu text-xl text-right text-amber-400 mb-2 font-black drop-shadow-md leading-[2.6]">{inspiration.ayah.urdu}</p>
-                  <p className="text-[10px] font-bold italic opacity-40 text-right">{inspiration.ayah.ref}</p>
+                  <p className="font-amiri text-2xl text-right mb-4 leading-relaxed tracking-wide drop-shadow-md">{inspiration.ayah.arabic}</p>
+                  <p className="font-urdu text-xl md:text-2xl text-right text-amber-400 mb-2 font-black drop-shadow-lg leading-snug">{inspiration.ayah.urdu}</p>
+                  <p className="text-[10px] font-bold italic opacity-40 text-right mt-2">{inspiration.ayah.ref}</p>
                 </div>
               </div>
 
               {/* Hadith Card */}
-              <div className="bg-white dark:bg-stone-900 p-6 md:p-8 rounded-[2.5rem] border border-gray-100 dark:border-stone-800 shadow-md relative overflow-hidden group min-h-[240px]">
-                <div className="absolute -bottom-8 -left-8 opacity-[0.05] dark:opacity-[0.1] pointer-events-none select-none transform rotate-45">
-                   <svg className="w-40 h-40" viewBox="0 0 100 100" fill="currentColor">
-                      <path d="M50 0 L100 50 L50 100 L0 50 Z M50 20 L80 50 L50 80 L20 50 Z" />
-                   </svg>
+              <div className="bg-white dark:bg-stone-900 p-6 md:p-8 rounded-[2.5rem] border border-gray-100 dark:border-stone-800 shadow-md relative overflow-hidden group min-h-[260px] flex flex-col justify-center">
+                {/* Decorative Calligraphy Background */}
+                <div className="absolute inset-0 flex items-center justify-center opacity-[0.1] dark:opacity-[0.08] pointer-events-none select-none font-amiri text-9xl tracking-tighter">
+                  محمد
                 </div>
-                <div className="relative z-10">
+                <div className="relative z-10 w-full">
                   <div className="text-[10px] font-black uppercase tracking-widest mb-4 text-stone-400">Daily Hadith</div>
-                  <p className="font-amiri text-xl text-right mb-4 text-emerald-900 dark:text-emerald-400 leading-relaxed font-bold">{inspiration.hadith.arabic}</p>
-                  <div className="h-px bg-stone-100 dark:bg-stone-800 mb-4 opacity-50"></div>
-                  <p className="font-urdu text-xl text-emerald-700 dark:text-amber-500 text-right font-black drop-shadow-sm leading-[2.6]">{inspiration.hadith.urdu}</p>
-                  <p className="text-[10px] font-bold italic opacity-40 mt-2">{inspiration.hadith.ref}</p>
+                  <p className="font-amiri text-xl md:text-2xl text-right mb-4 text-emerald-900 dark:text-emerald-400 leading-relaxed font-bold">{inspiration.hadith.arabic}</p>
+                 
+                  <p className="font-urdu text-xl md:text-2xl text-emerald-800 dark:text-amber-500 text-right font-black drop-shadow-sm leading-snug">{inspiration.hadith.urdu}</p>
+                  <p className="text-[10px] font-bold italic opacity-40 mt-3">{inspiration.hadith.ref}</p>
                 </div>
               </div>
             </div>
@@ -196,7 +195,7 @@ const Dashboard: React.FC<DashboardProps> = ({ date, onDateChange, entries, onSa
               </div>
             </div>
 
-            {/* Custom Goals */}
+            {/* Custom Goals Section - Responsive Sizing */}
             <div className="pt-8 border-t border-gray-100 dark:border-stone-800">
               <h3 className="text-lg font-black flex items-center gap-2 mb-4">
                 <span className="w-2 h-2 bg-amber-400 rounded-full"></span>
@@ -209,25 +208,25 @@ const Dashboard: React.FC<DashboardProps> = ({ date, onDateChange, entries, onSa
                   onChange={(e) => setNewTaskText(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && addCustomTask()}
                   placeholder="New goal..."
-                  className="flex-1 px-4 py-2.5 rounded-xl border bg-gray-50 dark:bg-stone-800 outline-none text-sm focus:ring-2 focus:ring-emerald-500"
+                  className="flex-1 px-3 py-2 rounded-xl border bg-gray-50 dark:bg-stone-800 outline-none text-xs md:text-sm focus:ring-2 focus:ring-emerald-500 min-w-0"
                 />
                 <button 
                   onClick={addCustomTask}
-                  className="px-4 py-2.5 bg-emerald-600 text-white rounded-xl font-black shadow-md hover:scale-105 active:scale-95 transition-all text-xs"
+                  className="px-3 py-2 bg-emerald-600 text-white rounded-xl font-black shadow-md hover:scale-105 active:scale-95 transition-all text-[10px] md:text-xs flex-shrink-0"
                 >
                   Add
                 </button>
               </div>
               <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1 no-scrollbar">
                 {(currentEntry.customTasks || []).map(task => (
-                  <div key={task.id} className="flex items-center gap-3 p-3 rounded-xl bg-gray-100 dark:bg-stone-800 border border-transparent group">
+                  <div key={task.id} className="flex items-center gap-3 p-2.5 rounded-xl bg-gray-100 dark:bg-stone-800 border border-transparent group">
                     <button 
                       onClick={() => toggleCustomTask(task.id)} 
-                      className={`w-5 h-5 rounded-full border-2 transition-all flex items-center justify-center flex-shrink-0 ${task.done ? 'bg-emerald-600 border-emerald-600' : 'bg-white dark:bg-stone-900 border-stone-300'}`}
+                      className={`w-4 h-4 rounded-full border-2 transition-all flex items-center justify-center flex-shrink-0 ${task.done ? 'bg-emerald-600 border-emerald-600' : 'bg-white dark:bg-stone-900 border-stone-300'}`}
                     >
-                      {task.done && <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M5 13l4 4L19 7" /></svg>}
+                      {task.done && <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M5 13l4 4L19 7" /></svg>}
                     </button>
-                    <span className={`text-xs flex-1 font-bold ${task.done ? 'line-through opacity-40' : 'text-emerald-950 dark:text-emerald-50'}`}>{task.text}</span>
+                    <span className={`text-[11px] md:text-xs flex-1 font-bold ${task.done ? 'line-through opacity-40' : 'text-emerald-950 dark:text-emerald-50'}`}>{task.text}</span>
                     <button onClick={() => removeCustomTask(task.id)} className="opacity-0 group-hover:opacity-100 p-1 text-stone-300 hover:text-red-500">
                       <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                     </button>
